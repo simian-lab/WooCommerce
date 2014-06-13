@@ -8,7 +8,7 @@
 require_once (plugin_dir_path( __FILE__ ).'payu-php-sdk/lib/PayU.php');
 function init_gateway_payu_class(){
 	class WC_Gateway_PayU_Latam extends WC_Payment_Gateway {		
-		function config_payu(){
+		public function config_payu(){
 			$test_pay_url = 'https://stg.api.payulatam.com/payments-api/4.0/service.cgi';
 			$test_consult_url = 'https://stg.api.payulatam.com/reports-api/4.0/service.cgi';
 			$pay_url = 'https://api.payulatam.com/payments-api/4.0/service.cgi';
@@ -18,14 +18,9 @@ function init_gateway_payu_class(){
 			PayU::$merchantId = $this->settings['merchant_id']; 
 			PayU::$language = SupportedLanguages::ES; 
 			PayU::$isTest = $this->settings['testmode'];
-			if(PayU::$isTest){
-				Environment::setPaymentsCustomUrl($test_pay_url);
-				Environment::setReportsCustomUrl($test_consult_url); 
-			}else{
-				Environment::setPaymentsCustomUrl($pay_url);
-				Environment::setReportsCustomUrl($consult_url); 
-			}
-			
+			Environment::setPaymentsCustomUrl($test_pay_url);
+			Environment::setReportsCustomUrl($test_consult_url);
+			Environment::setSubscriptionsCustomUrl($test_pay_url);						
 		}
 		public function __construct(){
 			$this->id = 'payu_latam';
@@ -74,11 +69,17 @@ function init_gateway_payu_class(){
 					'desc_tip' 		=> true
 					),
 				'apikey' => array(
-					'title' 		=> __('ApiKey', 'woocommerce'),
+					'title' 		=> __('Api Key', 'woocommerce'),
 					'type' 			=> 'text',
 					'description' 	=>  __('Given by PayU Latam', 'woocommerce'),
 					'desc_tip' 		=> true
                 	),
+				'account_id' => array(
+					'title' 		=> __('Account ID', 'woocommerce'),
+					'type' 			=> 'text',
+					'description' 	=> __('Some Countrys (Brasil, Mexico) require this ID, Gived to you by PayU Latam on regitration.', 'woocommerce'),
+					'desc_tip' 		=> true
+					),
 				'taxes' => array(
 					'title' 		=> __('Tax Rate - Read', 'woocommerce').' <a target="_blank" href="http://docs.payulatam.com/manual-integracion-web-checkout/informacion-adicional/tablas-de-variables-complementarias/">PayU Documentacion</a>',
 					'type' 			=> 'text',
@@ -105,16 +106,16 @@ function init_gateway_payu_class(){
 		}
 		public function payulatam_order_args($order){
 			$txnid = $order->order_key;
-			$productinfo = 'Pedido $order_id';
+			$productinfo = 'Pedido 5';
 			$order_total = $order->get_total();
 			$str ="$this->settings['apikey']~$this->settings['merchant_id']_id~$txnid~$order_total~$this->currency";
-			$hash =  strtolower(md5( $str));
+			$hash =  strtolower(md5($str));
 			$taxes = $this->settings['taxes'];
 			$tax_return_base = $this->settings['tax_return_base'];
 			if(PayU::$isTest){
 				$payer_name = 'APPROVED';
 			}else{
-				$payer_name = 'APPROVED';
+				$payer_name = 'The Real Name';
 			}
 			return array(
 				PayUParameters::REFERENCE_CODE => $txnid,
@@ -128,31 +129,32 @@ function init_gateway_payu_class(){
 				PayUParameters::PAYMENT_METHOD => PaymentMethods::VISA,
 				PayUParameters::PROCESS_WITHOUT_CVV2 => "true",
 				PayUParameters::TAX_RETURN_BASE => $taxes,
-				PayUParameters::TAX_VALUE => $tax_return_base);
-		}
-		public function generate_credit_card_html(){
-
+				PayUParameters::TAX_VALUE => $tax_return_base,
+				PayUParameters::INSTALLMENTS_NUMBER => '1',
+				PayUParameters::CURRENCY  => 'COP'
+				);
 		}
 		public function process_payment( $order_id ){
 			global $woocommerce;
-			$order = new WC_Order( $order_id );			
-			if(PayUPayments::doPing()){
+			$order = new WC_Order( $order_id );
+			$ping =  json_decode(PayUPayments::doPing());
+			if($ping->code == 'SUCCESS'){
 				$order->update_status('on-hold', __( 'Awaiting PayU Latam payment', 'woocommerce' ));
-				$parameters = $this->payulatam_order_args($order);	
-				$result = PayUPayments::doAuthorizationAndCapture($parameters);				
-				if($result['paymentResponse']['transactionResponse']['state']=='APPROVED'){
-					$order->reduce_order_stock();
+				$parameters = $this->payulatam_order_args($order);
+				print_r('Halt everything');
+				$result = json_decode(PayUPayments::doAuthorizationAndCapture($parameters));								
+				if($result->transactionResponse->responseCode == 'APPROVED'){
 					// Remove cart
 					$woocommerce->cart->empty_cart();
 					$order->payment_complete();
 					// Return thankyou redirect
 					return array(
 						'result' => 'success',
-						'redirect' => $this->get_return_url( $order )
+						'redirect' => $this->get_return_url($order)
 						);
 				}
 			}else{
-				$woocommerce->add_error($error_message);
+				$woocommerce->add_error('Hubo un error: '.$error_message);
 				return;
 			}
 		}
