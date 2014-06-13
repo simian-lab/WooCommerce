@@ -18,9 +18,14 @@ function init_gateway_payu_class(){
 			PayU::$merchantId = $this->settings['merchant_id']; 
 			PayU::$language = SupportedLanguages::ES; 
 			PayU::$isTest = $this->settings['testmode'];
-			Environment::setPaymentsCustomUrl("https://api.payulatam.com/payments-api/4.0");
-			Environment::setReportsCustomUrl("https://api.payulatam.com/reports-api/4.0");
-			Environment::setSubscriptionsCustomUrl("https://api.payulatam.com/payments-api/4.3"); 
+			if(PayU::$isTest){
+				Environment::setPaymentsCustomUrl($test_pay_url);
+				Environment::setReportsCustomUrl($test_consult_url); 
+			}else{
+				Environment::setPaymentsCustomUrl($pay_url);
+				Environment::setReportsCustomUrl($consult_url); 
+			}
+			
 		}
 		public function __construct(){
 			$this->id = 'payu_latam';
@@ -125,15 +130,16 @@ function init_gateway_payu_class(){
 				PayUParameters::TAX_RETURN_BASE => $taxes,
 				PayUParameters::TAX_VALUE => $tax_return_base);
 		}
+		public function generate_credit_card_html(){
+
+		}
 		public function process_payment( $order_id ){
 			global $woocommerce;
-			$order = new WC_Order( $order_id );
-			// Mark as on-hold (we're awaiting the cheque)
-			$order->update_status('on-hold', __( 'Awaiting PayU Latam payment', 'woocommerce' ));
-			
+			$order = new WC_Order( $order_id );			
 			if(PayUPayments::doPing()){
+				$order->update_status('on-hold', __( 'Awaiting PayU Latam payment', 'woocommerce' ));
 				$parameters = $this->payulatam_order_args($order);	
-				$result = PayUPayments::doAuthorizationAndCapture($parameters);
+				$result = PayUPayments::doAuthorizationAndCapture($parameters);				
 				if($result['paymentResponse']['transactionResponse']['state']=='APPROVED'){
 					$order->reduce_order_stock();
 					// Remove cart
