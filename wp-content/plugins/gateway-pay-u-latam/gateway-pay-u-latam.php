@@ -34,6 +34,7 @@ function init_gateway_payu_class(){
 			$this->title = $this->settings['title'];
 			$this->description = $this->settings['description'];
 			$this->currency	= get_woocommerce_currency();
+			$this->supports[] = 'default_credit_card_form';
 			add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		}
 		public function init_form_fields(){
@@ -104,6 +105,14 @@ function init_gateway_payu_class(){
                 )
 				);
 		}
+		public function payment_fields() {
+			if ( $description = $this->get_description() ) {
+        		echo wpautop( wptexturize( $description ) );
+         	}
+ 	       if ( $this->supports( 'default_credit_card_form' ) ) {
+    	        $this->credit_card_form();
+        	}
+    	}
 		public function payulatam_order_args($order){
 			$txnid = $order->order_key;
 			$productinfo = 'Pedido 5';
@@ -115,17 +124,17 @@ function init_gateway_payu_class(){
 			if(PayU::$isTest){
 				$payer_name = 'APPROVED';
 			}else{
-				$payer_name = 'The Real Name';
+				$payer_name = $_POST['billing_first_name'].' '.$_POST['billing_last_name'];
 			}
 			return array(
 				PayUParameters::REFERENCE_CODE => $txnid,
 				PayUParameters::DESCRIPTION => $productinfo,
 				PayUParameters::VALUE => $order_total,
 				PayUParameters::SIGNATURE => $hash,
-				PayUParameters::CREDIT_CARD_NUMBER => '4556906384445985',
+				PayUParameters::CREDIT_CARD_NUMBER => $_POST['payu_latam-card-number'],
 				PayUParameters::PAYER_NAME => $payer_name,
-				PayUParameters::CREDIT_CARD_EXPIRATION_DATE => "2015/01",
-				PayUParameters::CREDIT_CARD_SECURITY_CODE => "495",
+				PayUParameters::CREDIT_CARD_EXPIRATION_DATE => $_POST['payu_latam-card-expiry'],
+				PayUParameters::CREDIT_CARD_SECURITY_CODE => $_POST['payu_latam-card-cvc'],
 				PayUParameters::PAYMENT_METHOD => PaymentMethods::VISA,
 				PayUParameters::PROCESS_WITHOUT_CVV2 => "true",
 				PayUParameters::TAX_RETURN_BASE => $taxes,
@@ -133,7 +142,7 @@ function init_gateway_payu_class(){
 				PayUParameters::INSTALLMENTS_NUMBER => '1',
 				PayUParameters::CURRENCY  => 'COP'
 				);
-		}
+		}		
 		public function process_payment( $order_id ){
 			global $woocommerce;
 			$order = new WC_Order( $order_id );
@@ -141,7 +150,6 @@ function init_gateway_payu_class(){
 			if($ping->code == 'SUCCESS'){
 				$order->update_status('on-hold', __( 'Awaiting PayU Latam payment', 'woocommerce' ));
 				$parameters = $this->payulatam_order_args($order);
-				print_r('Halt everything');
 				$result = json_decode(PayUPayments::doAuthorizationAndCapture($parameters));								
 				if($result->transactionResponse->responseCode == 'APPROVED'){
 					// Remove cart
@@ -154,7 +162,7 @@ function init_gateway_payu_class(){
 						);
 				}
 			}else{
-				$woocommerce->add_error('Hubo un error: '.$error_message);
+				$woocommerce->add_error('Hubo un error: ');
 				return;
 			}
 		}
