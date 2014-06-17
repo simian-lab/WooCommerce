@@ -131,6 +131,7 @@ function init_gateway_payu_class(){
 				PayUParameters::DESCRIPTION => $productinfo,
 				PayUParameters::VALUE => $order_total,
 				PayUParameters::SIGNATURE => $hash,
+				PayUParameters::COUNTRY => PayUCountries::CO,
 				PayUParameters::CREDIT_CARD_NUMBER => $_POST['payu_latam-card-number'],
 				PayUParameters::PAYER_NAME => $payer_name,
 				PayUParameters::CREDIT_CARD_EXPIRATION_DATE => $_POST['payu_latam-card-expiry'],
@@ -146,8 +147,9 @@ function init_gateway_payu_class(){
 		public function process_payment( $order_id ){
 			global $woocommerce;
 			$order = new WC_Order( $order_id );
-			$ping =  json_decode(PayUPayments::doPing());
-			if($ping->code == 'SUCCESS'){
+			$parameters = $this->payulatam_order_args($order);
+			//$ping =  json_decode(PayUPayments::doPing());
+			if(false/*$ping->code == 'SUCCESS'*/){
 				$order->update_status('on-hold', __( 'Awaiting PayU Latam payment', 'woocommerce' ));
 				$parameters = $this->payulatam_order_args($order);
 				$result = json_decode(PayUPayments::doAuthorizationAndCapture($parameters));								
@@ -162,6 +164,10 @@ function init_gateway_payu_class(){
 						);
 				}
 			}else{
+				$response = PayUPayments::doAuthorizationAndCapture($parameters);
+				var_dump($response);
+				var_dump($parameters);
+				exit;
 				$woocommerce->add_error('Hubo un error: ');
 				return;
 			}
