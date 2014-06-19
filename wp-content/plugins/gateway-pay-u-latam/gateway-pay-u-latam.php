@@ -258,10 +258,7 @@ function init_gateway_payu_class(){
 				$curl = $this->init_curl_json($requestJSON);
 				$curlResponse = json_decode(curl_exec($curl));
 				$httpStatus = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
-				var_dump($requestJSON);
-				var_dump($curlResponse);
 				curl_close($curl);
-				exit;
 				if($curlResponse->transactionResponse->state == 'APPROVED'){
 					// Remove cart
 					$woocommerce->cart->empty_cart();
