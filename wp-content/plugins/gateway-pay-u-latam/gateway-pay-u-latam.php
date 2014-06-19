@@ -125,8 +125,8 @@ function init_gateway_payu_class(){
 			$productinfo = 'Orden de woocommerce';
 			$order_total = $order->get_total();
 			$tax_return_base = $this->settings['tax_return_base'];
-			$taxes = $this->settings['taxes'];	
-			$str = $this->settings['apikey'].'~'.$this->settings['merchant_id'].'~'.$txnid.'~'.$order_total.'~'.$this->currencyPayU;
+			$taxes = $this->settings['taxes'];				
+			$str = $this->apiKey.'~'.$this->merchantId.'~'.$txnid.'~'.$order_total.'~'.$this->currencyPayU;
 			$hash =  strtolower(md5($str));
 			$date_credit_card =	str_replace(' ', '',$_POST['payu_latam-card-expiry']);
 			$month = substr($date_credit_card,0,2);
@@ -258,7 +258,10 @@ function init_gateway_payu_class(){
 				$curl = $this->init_curl_json($requestJSON);
 				$curlResponse = json_decode(curl_exec($curl));
 				$httpStatus = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
+				var_dump($requestJSON);
+				var_dump($curlResponse);
 				curl_close($curl);
+				exit;
 				if($curlResponse->transactionResponse->state == 'APPROVED'){
 					// Remove cart
 					$woocommerce->cart->empty_cart();
@@ -269,7 +272,7 @@ function init_gateway_payu_class(){
 						'redirect' => $this->get_return_url($order)
 						);
 				}else{
-					$woocommerce->add_error('Hubo un error conla transaccion. Estado :'.$curlResponse->transactionResponse->state);
+					$woocommerce->add_error('Hubo un error con la transaccion. Estado :'.$curlResponse->transactionResponse->state);
 					return;
 				}
 			}else{
