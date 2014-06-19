@@ -5,22 +5,29 @@
     Author: Pablo García
     Version: 1.0
     */
-require_once (plugin_dir_path( __FILE__ ).'payu-php-sdk/lib/PayU.php');
 function init_gateway_payu_class(){
 	class WC_Gateway_PayU_Latam extends WC_Payment_Gateway {		
 		public function config_payu(){
-			$test_pay_url = 'https://stg.api.payulatam.com/payments-api/4.0/service.cgi';
-			$test_consult_url = 'https://stg.api.payulatam.com/reports-api/4.0/service.cgi';
-			$pay_url = 'https://api.payulatam.com/payments-api/4.0/service.cgi';
-			$consult_url = 'https://api.payulatam.com/reports-api/4.0/service.cgi';
-			PayU::$apiKey = $this->settings['apikey']; 
-			PayU::$apiLogin = $this->settings['apilogin'];
-			PayU::$merchantId = $this->settings['merchant_id']; 
-			PayU::$language = SupportedLanguages::ES; 
-			PayU::$isTest = $this->settings['testmode'];
-			Environment::setPaymentsCustomUrl($test_pay_url);
-			Environment::setReportsCustomUrl($test_consult_url);
-			Environment::setSubscriptionsCustomUrl($test_pay_url);						
+			$this->test_pay_url = 'https://stg.api.payulatam.com/payments-api/4.0/service.cgi';
+			$this->pay_url = 'https://api.payulatam.com/payments-api/4.0/service.cgi';
+			$this->isTest = $this->settings['testmode'];
+			if($this->isTest == 'yes'){
+				//Taken from http://docs.payulatam.com/integracion-con-api/pruebas-de-pago-en-api/ for tests
+				$this->apiKey = '6u39nqhq8ftd0hlvnjfs66eh8c';
+				$this->apiLogin = '11959c415b33d0c';
+				$this->merchantId = '500238';
+				$this->account_id = '500538';
+			}else{
+				$this->apiKey = $this->settings['apikey'];
+				$this->apiLogin = $this->settings['apilogin'];
+				$this->merchantId = $this->settings['merchant_id'];
+				$this->account_id = $this->settings['account_id'];  
+			}
+			
+			$this->language = 'es';
+			$this->country = 'CO';
+			$this->currencyPayU = 'COP';
+								
 		}
 		public function __construct(){
 			$this->id = 'payu_latam';
@@ -115,45 +122,142 @@ function init_gateway_payu_class(){
     	}
 		public function payulatam_order_args($order){
 			$txnid = $order->order_key;
-			$productinfo = 'Pedido 5';
+			$productinfo = 'Orden de woocommerce';
 			$order_total = $order->get_total();
-			$str ="$this->settings['apikey']~$this->settings['merchant_id']_id~$txnid~$order_total~$this->currency";
-			$hash =  strtolower(md5($str));
-			$taxes = $this->settings['taxes'];
 			$tax_return_base = $this->settings['tax_return_base'];
-			if(PayU::$isTest){
+			$taxes = $this->settings['taxes'];	
+			$str = $this->settings['apikey'].'~'.$this->settings['merchant_id'].'~'.$txnid.'~'.$order_total.'~'.$this->currencyPayU;
+			$hash =  strtolower(md5($str));
+			$date_credit_card =	str_replace(' ', '',$_POST['payu_latam-card-expiry']);
+			$month = substr($date_credit_card,0,2);
+			$year = substr($date_credit_card,3);				
+			if($this->isTest){
 				$payer_name = 'APPROVED';
 			}else{
 				$payer_name = $_POST['billing_first_name'].' '.$_POST['billing_last_name'];
 			}
 			return array(
-				PayUParameters::REFERENCE_CODE => $txnid,
-				PayUParameters::DESCRIPTION => $productinfo,
-				PayUParameters::VALUE => $order_total,
-				PayUParameters::SIGNATURE => $hash,
-				PayUParameters::COUNTRY => PayUCountries::CO,
-				PayUParameters::CREDIT_CARD_NUMBER => $_POST['payu_latam-card-number'],
-				PayUParameters::PAYER_NAME => $payer_name,
-				PayUParameters::CREDIT_CARD_EXPIRATION_DATE => $_POST['payu_latam-card-expiry'],
-				PayUParameters::CREDIT_CARD_SECURITY_CODE => $_POST['payu_latam-card-cvc'],
-				PayUParameters::PAYMENT_METHOD => PaymentMethods::VISA,
-				PayUParameters::PROCESS_WITHOUT_CVV2 => "true",
-				PayUParameters::TAX_RETURN_BASE => $taxes,
-				PayUParameters::TAX_VALUE => $tax_return_base,
-				PayUParameters::INSTALLMENTS_NUMBER => '1',
-				PayUParameters::CURRENCY  => 'COP'
+				'REFERENCE_CODE' => $txnid,
+				'DESCRIPTION' => $productinfo,
+				'VALUE' => $order_total,
+				'SIGNATURE' => $hash,
+				'COUNTRY' => $this->country,
+				'CREDIT_CARD_NUMBER' => $_POST['payu_latam-card-number'],
+				'PAYER_NAME' => $payer_name,
+				'CREDIT_CARD_EXPIRATION_DATE' => $year.'/'.$month,
+				'CREDIT_CARD_SECURITY_CODE' => $_POST['payu_latam-card-cvc'],
+				'PAYMENT_METHOD' => 'VISA',
+				'TAX_RETURN_BASE' => $tax_return_base,
+				'TAX_VALUE' => $taxes,
+				'INSTALLMENTS_NUMBER' => 1,	
+				'CURRENCY' => $this->currencyPayU
 				);
-		}		
+		}
+		public function build_credit_card($parameters){
+			$creditCard = new stdClass();
+			$creditCard->number = str_replace(' ', '', $parameters['CREDIT_CARD_NUMBER']);
+			$creditCard->securityCode = $parameters['CREDIT_CARD_SECURITY_CODE'];
+			$creditCard->expirationDate = stripslashes($parameters['CREDIT_CARD_EXPIRATION_DATE']);
+			if($this->isTest=='yes'){
+				$creditCard->name = 'APPROVED';
+			}else{
+				$creditCard->name = $parameters['PAYER_NAME'];
+			}
+			return $creditCard;
+		}
+		public function request_assembler($command, $parameters){
+			$request = new stdClass();
+			$request->language = 'es';
+			$request->command = $command;
+			$merchant = new stdClass();
+			$merchant->apiLogin = '11959c415b33d0c';
+			$merchant->apiKey= '6u39nqhq8ftd0hlvnjfs66eh8c';
+			$request->merchant = $merchant;
+			
+			if($command == 'SUBMIT_TRANSACTION'){
+				$transaction = new stdClass();
+				$order = new stdClass();
+				$order->accountId = $this->account_id;
+				$order->referenceCode = $parameters['REFERENCE_CODE'];
+				$order->description = $parameters['DESCRIPTION'];
+				$order->language = $this->language;
+				$order->signature = $parameters['SIGNATURE'];
+				$shippingAddress = new stdClass();
+				$shippingAddress->country = $this->country;
+				$order->shippingAddress = $shippingAddress;
+				$buyer = new stdClass();
+				if($this->isTest=='yes'){
+					$buyer->fullName = 'APPROVED';
+				}else{
+					$buyer->fullName = $parameters['PAYER_NAME'];
+				}
+				$buyer->emailAddress = $_POST['billing_email'];
+				$order->buyer = $buyer;				
+				$additionalValues = new stdClass();
+				$TX_VALUE = new stdClass();
+				$TX_VALUE->value = $parameters['VALUE'];
+				$TX_VALUE->currency = $this->currencyPayU;
+				$additionalValues->TX_VALUE = $TX_VALUE;
+				$order->additionalValues = $additionalValues;
+				$transaction->order = $order;				
+				$creditCard = $this->build_credit_card($parameters);
+				$transaction->creditCard = $creditCard;
+				$transaction->type = 'AUTHORIZATION_AND_CAPTURE';
+				$transaction->paymentMethod = $parameters['PAYMENT_METHOD'];
+				$transaction->paymentCountry = $parameters['COUNTRY'];
+				$payer = new stdClass();
+				if($this->isTest=='yes'){
+					$payer->fullName = 'APPROVED';
+				}else{
+					$payer->fullName = $parameters['PAYER_NAME'];
+				}
+				$payer->emailAddress = $_POST['billing_email'];
+				$payer->contactPhone = $_POST['billing_phone'];
+				$transaction->payer = $payer;
+				$extraParameters = new stdClass();
+				$extraParameters->INSTALLMENTS_NUMBER = $parameters['INSTALLMENTS_NUMBER'];
+				$transaction->extraParameters = $extraParameters;				
+				$request->transaction = $transaction;
+			}
+			if($this->isTest =='yes'){
+				$request->test = true;
+			}else{
+				$request->test = false;
+			}
+			$requestJSON = json_encode($request);
+			return $requestJSON;
+		}			
+		public function init_curl_json($requestJSON){
+			if($this->isTest=='yes'){
+				$curl = curl_init($this->test_pay_url);
+			}else{
+				$curl = curl_init($this->pay_url);
+			}			
+			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
+			curl_setopt($curl, CURLOPT_POSTFIELDS, $requestJSON);
+			curl_setopt($curl, CURLOPT_POST, true);
+			curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+			curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json; charset=UTF-8', 'Accept: application/json'));
+			return $curl;
+		}
 		public function process_payment( $order_id ){
 			global $woocommerce;
 			$order = new WC_Order( $order_id );
-			$parameters = $this->payulatam_order_args($order);
-			//$ping =  json_decode(PayUPayments::doPing());
-			if(false/*$ping->code == 'SUCCESS'*/){
+			$requestJSON = $this->request_assembler('PING',NULL);
+			$curl = $this->init_curl_json($requestJSON);
+			$curlResponse = json_decode(curl_exec($curl));
+			$httpStatus = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
+			curl_close($curl);
+			if($curlResponse->code == 'SUCCESS'){
 				$order->update_status('on-hold', __( 'Awaiting PayU Latam payment', 'woocommerce' ));
-				$parameters = $this->payulatam_order_args($order);
-				$result = json_decode(PayUPayments::doAuthorizationAndCapture($parameters));								
-				if($result->transactionResponse->responseCode == 'APPROVED'){
+				$parameters = $this->payulatam_order_args($order);	
+				$requestJSON = 	$this->request_assembler('SUBMIT_TRANSACTION',$parameters);
+				$curl = $this->init_curl_json($requestJSON);
+				$curlResponse = json_decode(curl_exec($curl));
+				$httpStatus = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
+				curl_close($curl);
+				if($curlResponse->transactionResponse->state == 'APPROVED'){
 					// Remove cart
 					$woocommerce->cart->empty_cart();
 					$order->payment_complete();
@@ -164,10 +268,6 @@ function init_gateway_payu_class(){
 						);
 				}
 			}else{
-				$response = PayUPayments::doAuthorizationAndCapture($parameters);
-				var_dump($response);
-				var_dump($parameters);
-				exit;
 				$woocommerce->add_error('Hubo un error: ');
 				return;
 			}
