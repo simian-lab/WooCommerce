@@ -177,7 +177,9 @@ function init_gateway_payu_class(){
 			if($command == 'SUBMIT_TRANSACTION'){
 				$transaction = new stdClass();
 				$order = new stdClass();
-				$order->accountId = $this->account_id;
+				if($this->account_id!=''){
+					$order->accountId = $this->account_id;
+				}				
 				$order->referenceCode = $parameters['REFERENCE_CODE'];
 				$order->description = $parameters['DESCRIPTION'];
 				$order->language = $this->language;
@@ -266,9 +268,12 @@ function init_gateway_payu_class(){
 						'result' => 'success',
 						'redirect' => $this->get_return_url($order)
 						);
+				}else{
+					$woocommerce->add_error('Hubo un error conla transaccion. Estado :'.$curlResponse->transactionResponse->state);
+					return;
 				}
 			}else{
-				$woocommerce->add_error('Hubo un error: ');
+				$woocommerce->add_error('Hubo un error de conexion con PayU Latam');
 				return;
 			}
 		}
