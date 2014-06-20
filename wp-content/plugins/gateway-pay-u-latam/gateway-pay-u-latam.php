@@ -288,6 +288,14 @@ function add_payu_gateway_class( $methods ){
 	$methods[] = 'WC_Gateway_PayU_Latam';
 	return $methods;
 }
+function override_credit_card_field( $fields ){
+	$fields['card-expiry-field']= '<p class="form-row form-row-first">
+	<label for="payu_latam-card-expiry">' . __( 'Expiry (MM/YYYY)', 'woocommerce' ) . ' <span class="required">*</span></label>
+	<input id="payu_latam-card-expiry" class="input-text wc-credit-card-form-card-expiry" type="text" autocomplete="off" placeholder="' . __( 'MM / YYYY', 'woocommerce' ) . '" name="payu_latam-card-expiry" />
+    </p>';
+	return $fields; 
+}
 add_action('plugins_loaded','init_gateway_payu_class');
 add_filter( 'woocommerce_payment_gateways', 'add_payu_gateway_class' );
+add_filter('woocommerce_credit_card_form_fields','override_credit_card_field');
 ?>
