@@ -121,6 +121,7 @@ function init_gateway_payu_class(){
         	}
     	}
 		public function payulatam_order_args($order){
+			global $woocommerce;
 			$txnid = $order->order_key;
 			$productinfo = 'Orden de woocommerce';
 			$order_total = $order->get_total();
@@ -130,7 +131,11 @@ function init_gateway_payu_class(){
 			$hash =  strtolower(md5($str));
 			$date_credit_card =	str_replace(' ', '',$_POST['payu_latam-card-expiry']);
 			$month = substr($date_credit_card,0,2);
-			$year = substr($date_credit_card,3);				
+			$year = substr($date_credit_card,3);
+			if(strlen($year)<4){
+				$woocommerce->add_error('Year has to be in format YYYY');
+				return;
+			}				
 			if($this->isTest){
 				$payer_name = 'APPROVED';
 			}else{
@@ -269,7 +274,7 @@ function init_gateway_payu_class(){
 						'redirect' => $this->get_return_url($order)
 						);
 				}else{
-					$woocommerce->add_error('Hubo un error con la transaccion. Estado :'.$curlResponse->transactionResponse->state);
+					$woocommerce->add_error('Hubo un error con la transaccion: '.$curlResponse->error. ' Code: '.$curlResponse->code. ' Respuesta transaccion: '.$curlResponse->transactionResponse->state);
 					return;
 				}
 			}else{
