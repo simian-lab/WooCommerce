@@ -41,7 +41,6 @@ function init_gateway_payu_class(){
 			$this->title = $this->settings['title'];
 			$this->description = $this->settings['description'];
 			$this->currency	= get_woocommerce_currency();
-			$this->supports[] = 'default_credit_card_form';
 			add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		}
 		public function init_form_fields(){
@@ -112,13 +111,26 @@ function init_gateway_payu_class(){
                 )
 				);
 		}
-		public function payment_fields() {
+		public function payment_fields() {			
 			if ( $description = $this->get_description() ) {
         		echo wpautop( wptexturize( $description ) );
          	}
- 	       if ( $this->supports( 'default_credit_card_form' ) ) {
-    	        $this->credit_card_form();
-        	}
+         	echo '<select id="payu_latam-payment-select">
+				<option value="Credit Card">Credit Card</option>
+				<option value="Bank Transfer">Bank Transfer</option>
+				<option value="Direct Cash">Direct Cash</option>
+				</select>';
+			$payWith = 'Credit Card';
+         	if ($payWith == 'Credit Card'){
+         		$this->credit_card_form(array('fields_have_names' => true), array('card-select-field' => '<p class="form-row form-row-first">
+			<label for="payu_latam-card-select">' . __( 'Credit Card Type', 'woocommerce' ) . ' <span class="required">*</span></label>
+			<select id="payu_latam-card-select" class="input-text wc-credit-card-form-card-select" name="payu_latam-card-select">
+				<option value="VISA">VISA</option>
+				<option value="MASTERCARD">MASTERCARD</option>
+				<option value="AMEX">AMEX</option>
+				<option value="DINERS">DINERS</option>
+			</select></p>'));
+         	} 	       	        	
     	}
 		public function payulatam_order_args($order){
 			global $woocommerce;
@@ -151,7 +163,7 @@ function init_gateway_payu_class(){
 				'PAYER_NAME' => $payer_name,
 				'CREDIT_CARD_EXPIRATION_DATE' => $year.'/'.$month,
 				'CREDIT_CARD_SECURITY_CODE' => $_POST['payu_latam-card-cvc'],
-				'PAYMENT_METHOD' => 'VISA',
+				'PAYMENT_METHOD' => $_POST['payu_latam-card-select'],
 				'TAX_RETURN_BASE' => $tax_return_base,
 				'TAX_VALUE' => $taxes,
 				'INSTALLMENTS_NUMBER' => 1,	
@@ -289,7 +301,7 @@ function add_payu_gateway_class( $methods ){
 	return $methods;
 }
 function override_credit_card_field( $fields ){
-	$fields['card-expiry-field']= '<p class="form-row form-row-first">
+	$fields['card-expiry-field'] = '<p class="form-row form-row-first">
 	<label for="payu_latam-card-expiry">' . __( 'Expiry (MM/YYYY)', 'woocommerce' ) . ' <span class="required">*</span></label>
 	<input id="payu_latam-card-expiry" class="input-text wc-credit-card-form-card-expiry" type="text" autocomplete="off" placeholder="' . __( 'MM / YYYY', 'woocommerce' ) . '" name="payu_latam-card-expiry" />
     </p>';
