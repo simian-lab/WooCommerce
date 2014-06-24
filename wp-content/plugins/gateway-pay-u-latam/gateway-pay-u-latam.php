@@ -127,8 +127,8 @@ function init_gateway_payu_class(){
 			<select id="payu_latam-card-select" class="input-text wc-credit-card-form-card-select" name="payu_latam-card-select">
 				<option value="VISA">VISA</option>
 				<option value="MASTERCARD">MASTERCARD</option>
-				<option value="AMEX">AMEX</option>
-				<option value="DINERS">DINERS</option>
+				<option value="AMEX">AMERICAN EXPRESS</option>
+				<option value="DINERS">DINERS CLUB</option>
 			</select></p>'));
          	} 	       	        	
     	}
@@ -286,7 +286,8 @@ function init_gateway_payu_class(){
 						'redirect' => $this->get_return_url($order)
 						);
 				}else{
-					$woocommerce->add_error('Hubo un error con la transaccion: '.$curlResponse->error. ' Code: '.$curlResponse->code. ' Respuesta transaccion: '.$curlResponse->transactionResponse->state);
+					$woocommerce->add_error('Hubo un error con la transaccion: '.$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Mensaje: '.$curlResponse->transactionResponse->responseMessage);
+					$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
 					return;
 				}
 			}else{
