@@ -308,7 +308,12 @@ function override_credit_card_field( $fields ){
     </p>';
 	return $fields; 
 }
+function remove_zipcode_field( $fields){
+	unset($fields['billing']['billing_postcode']);
+	return $fields;
+}
 add_action('plugins_loaded','init_gateway_payu_class');
 add_filter( 'woocommerce_payment_gateways', 'add_payu_gateway_class' );
 add_filter('woocommerce_credit_card_form_fields','override_credit_card_field');
+add_filter('woocommerce_checkout_fields','remove_zipcode_field');
 ?>
