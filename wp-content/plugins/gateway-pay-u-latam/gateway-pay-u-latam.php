@@ -111,16 +111,18 @@ function init_gateway_payu_class(){
                 )
 				);
 		}
-		public function payment_fields() {			
+		public function payment_fields() {	
 			if ( $description = $this->get_description() ) {
         		echo wpautop( wptexturize( $description ) );
          	}
-         	echo '<select id="payu_latam-payment-select">
+         	echo '<label for="payu_latam-payment-select">' . __( 'Payment Method Select', 'woocommerce' ) . ' <span class="required">*</span></label>
+         	<select id="payu_latam-payment-select" name="payu_latam-payment-select">
 				<option value="Credit Card">Credit Card</option>
-				<option value="Bank Transfer">Bank Transfer</option>
-				<option value="Direct Cash">Direct Cash</option>
-				</select>';
-			$payWith = 'Credit Card';
+				<option value="PSE">PSE Bank Transfer</option>
+				<option value="BALOTO">Baloto</option>
+				<option value="EFECTY">Efecty</option>
+			</select>';			
+			$payWith = 'PSE';
          	if ($payWith == 'Credit Card'){
          		$this->credit_card_form(array('fields_have_names' => true), array('card-select-field' => '<p class="form-row form-row-first">
 			<label for="payu_latam-card-select">' . __( 'Credit Card Type', 'woocommerce' ) . ' <span class="required">*</span></label>
@@ -129,8 +131,41 @@ function init_gateway_payu_class(){
 				<option value="MASTERCARD">MASTERCARD</option>
 				<option value="AMEX">AMERICAN EXPRESS</option>
 				<option value="DINERS">DINERS CLUB</option>
-			</select></p>'));
-         	} 	       	        	
+			</select></p>'));         		
+         	}
+         	if ($payWith == 'PSE'){
+         		$this->pse_form();
+         	}         	       	        	
+    	}
+    	public function pse_form(){
+    		$bankLists = $this->get_pse_banklist();
+         	echo '<label for="payu_latam-pse-banklist">' . __( 'Select Bank', 'woocommerce' ) . ' <span class="required">*</span></label><select id="payu_latam-pse-banklist" name="payu_latam-pse-bank">';
+         	foreach ($bankLists as $key => $value) {
+         		echo '<option value="'.$key.'">'.$key.'</option>';
+			}
+			echo '</select>';
+			echo '<label for="payu_latam-person-type">' . __( 'Person Type', 'woocommerce' ) . ' <span class="required">*</span></label><select id="payu_latam-person-type" name="payu_latam-person-type">
+				<option value="N">Natural</option>
+				<option value="J">Juridic</option>
+			</select>';
+			echo '<label for="payu_latam-docid-type">' . __( 'ID Document Type', 'woocommerce' ) . ' <span class="required">*</span></label><select id="payu_latam-docid-type" name="payu_latam-docid-type">
+				<option value="CC">Cedula de Ciudadania</option>
+				<option value="NIT">NIT</option>
+			</select>';
+			echo '<label for="payu_latam-id-number">' . __( 'ID Number', 'woocommerce' ) . ' <span class="required">*</span></label>
+			<input id="payu_latam-id-number" type="text" autocomplete="off" placeholder="' . __( 'ID Number', 'woocommerce' ) . '" name="payu_latam-id-number" />';
+    	}
+    	public function get_pse_banklist(){
+    		$requestJSON = $this->request_assembler('GET_BANKS_LIST', NULL);
+    		$curl = $this->init_curl_json($requestJSON);
+    		$curlResponse = json_decode(curl_exec($curl));
+			$httpStatus = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
+			curl_close($curl);
+			$bankLists = array();
+			foreach ($curlResponse->banks as $key => $value) {
+				$bankLists = array_merge($bankLists,array($value->description => $value->pseCode));
+			}
+			return $bankLists;
     	}
 		public function payulatam_order_args($order){
 			global $woocommerce;
@@ -141,34 +176,40 @@ function init_gateway_payu_class(){
 			$taxes = $this->settings['taxes'];				
 			$str = $this->apiKey.'~'.$this->merchantId.'~'.$txnid.'~'.$order_total.'~'.$this->currencyPayU;
 			$hash =  strtolower(md5($str));
-			$date_credit_card =	str_replace(' ', '',$_POST['payu_latam-card-expiry']);
-			$month = substr($date_credit_card,0,2);
-			$year = substr($date_credit_card,3);
-			if(strlen($year)<4){
-				$woocommerce->add_error('Year has to be in format YYYY');
-				return;
-			}				
+			if ($_POST['payu_latam-payment-select'] == 'Credit Card'){
+				$date_credit_card =	str_replace(' ', '',$_POST['payu_latam-card-expiry']);
+				$month = substr($date_credit_card,0,2);
+				$year = substr($date_credit_card,3);
+				if(strlen($year)<4){
+					wc_add_notice('Year has to be in format YYYY',$notice_type = 'error');
+					return;
+				}		
+			}
+					
 			if($this->isTest){
 				$payer_name = 'APPROVED';
 			}else{
 				$payer_name = $_POST['billing_first_name'].' '.$_POST['billing_last_name'];
 			}
-			return array(
+			$returnArray = array(
 				'REFERENCE_CODE' => $txnid,
 				'DESCRIPTION' => $productinfo,
 				'VALUE' => $order_total,
 				'SIGNATURE' => $hash,
 				'COUNTRY' => $this->country,
-				'CREDIT_CARD_NUMBER' => $_POST['payu_latam-card-number'],
 				'PAYER_NAME' => $payer_name,
-				'CREDIT_CARD_EXPIRATION_DATE' => $year.'/'.$month,
-				'CREDIT_CARD_SECURITY_CODE' => $_POST['payu_latam-card-cvc'],
-				'PAYMENT_METHOD' => $_POST['payu_latam-card-select'],
+				'PAYMENT_METHOD' => $_POST['payu_latam-payment-select'],
 				'TAX_RETURN_BASE' => $tax_return_base,
 				'TAX_VALUE' => $taxes,
-				'INSTALLMENTS_NUMBER' => 1,	
 				'CURRENCY' => $this->currencyPayU
 				);
+			if($_POST['payu_latam-payment-select'] == 'Credit Card'){
+				$returnArray['CREDIT_CARD_EXPIRATION_DATE'] = $year.'/'.$month;
+				$returnArray['CREDIT_CARD_SECURITY_CODE'] = $_POST['payu_latam-card-cvc'];
+				$returnArray['CREDIT_CARD_NUMBER'] = $_POST['payu_latam-card-number'];
+				$returnArray['INSTALLMENTS_NUMBER'] = 1;
+			}
+			return $returnArray;
 		}
 		public function build_credit_card($parameters){
 			$creditCard = new stdClass();
@@ -189,8 +230,7 @@ function init_gateway_payu_class(){
 			$merchant = new stdClass();
 			$merchant->apiLogin = '11959c415b33d0c';
 			$merchant->apiKey= '6u39nqhq8ftd0hlvnjfs66eh8c';
-			$request->merchant = $merchant;
-			
+			$request->merchant = $merchant;			
 			if($command == 'SUBMIT_TRANSACTION'){
 				$transaction = new stdClass();
 				$order = new stdClass();
@@ -219,8 +259,10 @@ function init_gateway_payu_class(){
 				$additionalValues->TX_VALUE = $TX_VALUE;
 				$order->additionalValues = $additionalValues;
 				$transaction->order = $order;				
-				$creditCard = $this->build_credit_card($parameters);
-				$transaction->creditCard = $creditCard;
+				if ($parameters['PAYMENT_METHOD'] != 'PSE' && $parameters['PAYMENT_METHOD'] != 'BALOTO' && $parameters['PAYMENT_METHOD'] != 'EFECTY') {
+					$creditCard = $this->build_credit_card($parameters);
+					$transaction->creditCard = $creditCard;
+				}				
 				$transaction->type = 'AUTHORIZATION_AND_CAPTURE';
 				$transaction->paymentMethod = $parameters['PAYMENT_METHOD'];
 				$transaction->paymentCountry = $parameters['COUNTRY'];
@@ -234,14 +276,31 @@ function init_gateway_payu_class(){
 				$payer->contactPhone = $_POST['billing_phone'];
 				$transaction->payer = $payer;
 				$extraParameters = new stdClass();
-				$extraParameters->INSTALLMENTS_NUMBER = $parameters['INSTALLMENTS_NUMBER'];
-				$transaction->extraParameters = $extraParameters;				
+				if ($parameters['PAYMENT_METHOD'] != 'PSE' && $parameters['PAYMENT_METHOD'] != 'BALOTO' && $parameters['PAYMENT_METHOD'] != 'EFECTY') {
+					$extraParameters->INSTALLMENTS_NUMBER = $parameters['INSTALLMENTS_NUMBER'];
+					$transaction->extraParameters = $extraParameters;				
+				}
+				if ($parameters['PAYMENT_METHOD'] == 'PSE') {
+					$banksList = $this->get_pse_banklist();
+					$extraParameters->FINANCIAL_INSTITUTION_CODE = $banksList[$_POST['payu_latam-pse-bank']];
+					$extraParameters->FINANCIAL_INSTITUTION_NAME = $_POST['payu_latam-pse-bank'];
+					$extraParameters->USER_TYPE = $_POST['payu_latam-person-type'];
+					$extraParameters->PSE_REFERENCE2 = $_POST['payu_latam-docid-type'];
+					$extraParameters->PSE_REFERENCE3 = $_POST['payu_latam-id-number'];
+					$transaction->extraParameters = $extraParameters;	
+				}							
 				$request->transaction = $transaction;
 			}
 			if($this->isTest =='yes'){
 				$request->test = true;
 			}else{
 				$request->test = false;
+			}
+			if($command == 'GET_BANKS_LIST'){
+				$bankListInformation = new stdClass();
+				$bankListInformation->paymentMethod = 'PSE';
+				$bankListInformation->paymentCountry = $this->country;
+				$request->bankListInformation = $bankListInformation;
 			}
 			$requestJSON = json_encode($request);
 			return $requestJSON;
@@ -272,10 +331,11 @@ function init_gateway_payu_class(){
 				$order->update_status('on-hold', __( 'Awaiting PayU Latam payment', 'woocommerce' ));
 				$parameters = $this->payulatam_order_args($order);	
 				$requestJSON = 	$this->request_assembler('SUBMIT_TRANSACTION',$parameters);
-				$curl = $this->init_curl_json($requestJSON);
+				$bankListArray = $this->get_pse_banklist();
+				$curl = $this->init_curl_json($requestJSON);				
 				$curlResponse = json_decode(curl_exec($curl));
 				$httpStatus = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
-				curl_close($curl);
+				curl_close($curl);				
 				if($curlResponse->transactionResponse->state == 'APPROVED'){
 					// Remove cart
 					$woocommerce->cart->empty_cart();
@@ -286,12 +346,12 @@ function init_gateway_payu_class(){
 						'redirect' => $this->get_return_url($order)
 						);
 				}else{
-					$woocommerce->add_error('Hubo un error con la transaccion: '.$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Mensaje: '.$curlResponse->transactionResponse->responseMessage);
+					wc_add_notice('Hubo un error con la transaccion: '.$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Mensaje: '.$curlResponse->transactionResponse->responseMessage,$notice_type = 'error');
 					$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
 					return;
 				}
 			}else{
-				$woocommerce->add_error('Hubo un error de conexion con PayU Latam');
+				wc_add_notice('Hubo un error de conexion con PayU Latam',$notice_type = 'error');
 				return;
 			}
 		}
