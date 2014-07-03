@@ -116,29 +116,25 @@ function init_gateway_payu_class(){
         		echo wpautop( wptexturize( $description ) );
          	}
          	echo '<label for="payu_latam-payment-select">' . __( 'Payment Method Select', 'woocommerce' ) . ' <span class="required">*</span></label>
-         	<select id="payu_latam-payment-select" name="payu_latam-payment-select">
+         	<select id="payu_latam-payment-select" name="payu_latam-payment-select" onchange="displayPayuForm()">
 				<option value="Credit Card">Credit Card</option>
 				<option value="PSE">PSE Bank Transfer</option>
 				<option value="BALOTO">Baloto</option>
 				<option value="EFECTY">Efecty</option>
-			</select>';			
-			$payWith = 'PSE';
-         	if ($payWith == 'Credit Card'){
-         		$this->credit_card_form(array('fields_have_names' => true), array('card-select-field' => '<p class="form-row form-row-first">
+			</select>';
+         	$this->credit_card_form(array('fields_have_names' => true), array('card-select-field' => '<p class="form-row form-row-first">
 			<label for="payu_latam-card-select">' . __( 'Credit Card Type', 'woocommerce' ) . ' <span class="required">*</span></label>
 			<select id="payu_latam-card-select" class="input-text wc-credit-card-form-card-select" name="payu_latam-card-select">
 				<option value="VISA">VISA</option>
 				<option value="MASTERCARD">MASTERCARD</option>
 				<option value="AMEX">AMERICAN EXPRESS</option>
 				<option value="DINERS">DINERS CLUB</option>
-			</select></p>'));         		
-         	}
-         	if ($payWith == 'PSE'){
-         		$this->pse_form();
-         	}         	       	        	
+			</select></p>'));
+         		$this->pse_form();    	
     	}
     	public function pse_form(){
     		$bankLists = $this->get_pse_banklist();
+    		echo '<fieldset id="payu_latam-pse-form">';
          	echo '<label for="payu_latam-pse-banklist">' . __( 'Select Bank', 'woocommerce' ) . ' <span class="required">*</span></label><select id="payu_latam-pse-banklist" name="payu_latam-pse-bank">';
          	foreach ($bankLists as $key => $value) {
          		echo '<option value="'.$key.'">'.$key.'</option>';
@@ -154,6 +150,7 @@ function init_gateway_payu_class(){
 			</select>';
 			echo '<label for="payu_latam-id-number">' . __( 'ID Number', 'woocommerce' ) . ' <span class="required">*</span></label>
 			<input id="payu_latam-id-number" type="text" autocomplete="off" placeholder="' . __( 'ID Number', 'woocommerce' ) . '" name="payu_latam-id-number" />';
+    		echo '</fieldset>';
     	}
     	public function get_pse_banklist(){
     		$requestJSON = $this->request_assembler('GET_BANKS_LIST', NULL);
@@ -331,11 +328,25 @@ function init_gateway_payu_class(){
 				$order->update_status('on-hold', __( 'Awaiting PayU Latam payment', 'woocommerce' ));
 				$parameters = $this->payulatam_order_args($order);	
 				$requestJSON = 	$this->request_assembler('SUBMIT_TRANSACTION',$parameters);
+				var_dump($requestJSON);
+				exit;
 				$bankListArray = $this->get_pse_banklist();
 				$curl = $this->init_curl_json($requestJSON);				
 				$curlResponse = json_decode(curl_exec($curl));
 				$httpStatus = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
-				curl_close($curl);				
+				curl_close($curl);
+				if($_POST['payu_latam-payment-select'] == 'PSE'){
+					return array(
+						'result' => 'success',
+						'redirect' => $curlResponse->transactionResponse->extraParameters->BANK_URL
+						);
+				}
+				if($_POST['payu_latam-payment-select'] == 'BALOTO' || $_POST['payu_latam-payment-select'] == 'EFECTY'){
+					return array(
+						'result' => 'success',
+						'redirect' => $curlResponse->transactionResponse->extraParameters->URL_PAYMENT_RECEIPT_HTML
+						);
+				}				
 				if($curlResponse->transactionResponse->state == 'APPROVED'){
 					// Remove cart
 					$woocommerce->cart->empty_cart();
@@ -372,8 +383,15 @@ function remove_zipcode_field( $fields){
 	unset($fields['billing']['billing_postcode']);
 	return $fields;
 }
+function payu_enqueue_scripts(){
+	if ( function_exists( 'is_woocommerce' ) ) {
+		wp_enqueue_style('payu-forms',plugins_url('/gateway-pay-u-latam/assets/css/payu-forms.css'),__FILE__);
+		wp_enqueue_script('payu-display-form',plugins_url('/gateway-pay-u-latam/assets/js/displayPayForms.js'),__FILE__);
+	}
+}
 add_action('plugins_loaded','init_gateway_payu_class');
 add_filter( 'woocommerce_payment_gateways', 'add_payu_gateway_class' );
 add_filter('woocommerce_credit_card_form_fields','override_credit_card_field');
 add_filter('woocommerce_checkout_fields','remove_zipcode_field');
+add_action( 'wp_enqueue_scripts', 'payu_enqueue_scripts', 99 );
 ?>
