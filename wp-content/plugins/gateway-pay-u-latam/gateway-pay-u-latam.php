@@ -374,10 +374,10 @@ function init_gateway_payu_class(){
 						return;
 					}
 					if($curlResponse->transactionResponse->state == 'PENDING'){
-						return array(
-						'result' => 'success',
-						'redirect' => $curlResponse->transactionResponse->extraParameters->BANK_URL
-						);	
+						$woocommerce->cart->empty_cart();
+						$order->payment_complete();
+						wp_redirect($curlResponse->transactionResponse->extraParameters->BANK_URL);
+						exit;
 					}
 				}
 				if($_POST['payu_latam-payment-select'] == 'BALOTO'){
@@ -392,11 +392,10 @@ function init_gateway_payu_class(){
 						return;
 					}
 					if($curlResponse->transactionResponse->state == 'PENDING'){
-						
-						return array(
-						'result' => 'success',
-						'redirect' => $curlResponse->transactionResponse->extraParameters->BANK_URL
-						);	
+						$woocommerce->cart->empty_cart();
+						$order->payment_complete();	
+						wp_redirect($curlResponse->transactionResponse->extraParameters->URL_PAYMENT_RECEIPT_HTML);
+						exit;
 					}
 				}				
 				if($curlResponse->transactionResponse->state == 'APPROVED'){
