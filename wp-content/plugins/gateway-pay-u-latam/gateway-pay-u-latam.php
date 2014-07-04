@@ -167,7 +167,7 @@ function init_gateway_payu_class(){
 		public function payulatam_order_args($order){
 			global $woocommerce;
 			$txnid = $order->order_key;
-			$productinfo = 'Orden de woocommerce';
+			$productinfo = 'Orden '.$txnid;
 			$order_total = $order->get_total();
 			$tax_return_base = $this->settings['tax_return_base'];
 			$taxes = $this->settings['taxes'];				
@@ -261,7 +261,11 @@ function init_gateway_payu_class(){
 					$transaction->creditCard = $creditCard;
 				}				
 				$transaction->type = 'AUTHORIZATION_AND_CAPTURE';
-				$transaction->paymentMethod = $parameters['PAYMENT_METHOD'];
+				if($parameters['PAYMENT_METHOD'] == 'Credit Card'){
+					$transaction->paymentMethod = $_POST['payu_latam-card-select'];
+				}else{
+					$transaction->paymentMethod = $parameters['PAYMENT_METHOD'];
+				}				
 				$transaction->paymentCountry = $parameters['COUNTRY'];
 				$payer = new stdClass();
 				if($this->isTest=='yes'){
@@ -328,8 +332,6 @@ function init_gateway_payu_class(){
 				$order->update_status('on-hold', __( 'Awaiting PayU Latam payment', 'woocommerce' ));
 				$parameters = $this->payulatam_order_args($order);	
 				$requestJSON = 	$this->request_assembler('SUBMIT_TRANSACTION',$parameters);
-				var_dump($requestJSON);
-				exit;
 				$bankListArray = $this->get_pse_banklist();
 				$curl = $this->init_curl_json($requestJSON);				
 				$curlResponse = json_decode(curl_exec($curl));
