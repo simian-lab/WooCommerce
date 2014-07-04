@@ -8,7 +8,7 @@ function displayPayuForm(){
 		document.getElementById('payu_latam-cc-form').style.display = 'block';
 		document.getElementById('payu_latam-pse-form').style.display = 'none';
 	}
-	if (selectedPayment == 'BALOTO' || selectedPayment == 'EFECTY'){
+	if (selectedPayment == 'BALOTO'){
 		document.getElementById('payu_latam-cc-form').style.display = 'none';
 		document.getElementById('payu_latam-pse-form').style.display = 'none';
 	}
