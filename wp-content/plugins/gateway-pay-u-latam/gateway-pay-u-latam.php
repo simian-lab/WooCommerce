@@ -10,6 +10,8 @@ function init_gateway_payu_class(){
 		public function config_payu(){
 			$this->test_pay_url = 'https://stg.api.payulatam.com/payments-api/4.0/service.cgi';
 			$this->pay_url = 'https://api.payulatam.com/payments-api/4.0/service.cgi';
+			$this->test_reports_url = 'https://stg.api.payulatam.com/reports-api/4.0/service.cgi';
+			$this->reports_url = 'https://api.payulatam.com/reports-api/4.0/service.cgi';
 			$this->isTest = $this->settings['testmode'];
 			if($this->isTest == 'yes'){
 				//Taken from http://docs.payulatam.com/integracion-con-api/pruebas-de-pago-en-api/ for tests
@@ -120,7 +122,6 @@ function init_gateway_payu_class(){
 				<option value="Credit Card">Credit Card</option>
 				<option value="PSE">PSE Bank Transfer</option>
 				<option value="BALOTO">Baloto</option>
-				<option value="EFECTY">Efecty</option>
 			</select>';
          	$this->credit_card_form(array('fields_have_names' => true), array('card-select-field' => '<p class="form-row form-row-first">
 			<label for="payu_latam-card-select">' . __( 'Credit Card Type', 'woocommerce' ) . ' <span class="required">*</span></label>
@@ -154,7 +155,7 @@ function init_gateway_payu_class(){
     	}
     	public function get_pse_banklist(){
     		$requestJSON = $this->request_assembler('GET_BANKS_LIST', NULL);
-    		$curl = $this->init_curl_json($requestJSON);
+    		$curl = $this->init_curl_json($requestJSON,'pay');
     		$curlResponse = json_decode(curl_exec($curl));
 			$httpStatus = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
 			curl_close($curl);
@@ -303,15 +304,29 @@ function init_gateway_payu_class(){
 				$bankListInformation->paymentCountry = $this->country;
 				$request->bankListInformation = $bankListInformation;
 			}
+			if($command == 'ORDER_DETAIL_BY_REFERENCE_CODE'){
+				$details = new stdClass();
+				$details->referenceCode = $parameters['REFERENCE_CODE'];
+				$request->details = $details;
+			}
 			$requestJSON = json_encode($request);
 			return $requestJSON;
 		}			
-		public function init_curl_json($requestJSON){
-			if($this->isTest=='yes'){
-				$curl = curl_init($this->test_pay_url);
-			}else{
-				$curl = curl_init($this->pay_url);
-			}			
+		public function init_curl_json($requestJSON, $payOrReport){
+			if($payOrReport ==  'pay'){
+				if($this->isTest=='yes'){
+					$curl = curl_init($this->test_pay_url);
+				}else{
+					$curl = curl_init($this->pay_url);
+				}	
+			}
+			if($payOrReport ==  'report'){
+				if($this->isTest=='yes'){
+					$curl = curl_init($this->test_reports_url);
+				}else{
+					$curl = curl_init($this->reports_url);
+				}	
+			}		
 			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
 			curl_setopt($curl, CURLOPT_POSTFIELDS, $requestJSON);
 			curl_setopt($curl, CURLOPT_POST, true);
@@ -324,7 +339,7 @@ function init_gateway_payu_class(){
 			global $woocommerce;
 			$order = new WC_Order( $order_id );
 			$requestJSON = $this->request_assembler('PING',NULL);
-			$curl = $this->init_curl_json($requestJSON);
+			$curl = $this->init_curl_json($requestJSON,'pay');
 			$curlResponse = json_decode(curl_exec($curl));
 			$httpStatus = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
 			curl_close($curl);
@@ -333,21 +348,56 @@ function init_gateway_payu_class(){
 				$parameters = $this->payulatam_order_args($order);	
 				$requestJSON = 	$this->request_assembler('SUBMIT_TRANSACTION',$parameters);
 				$bankListArray = $this->get_pse_banklist();
-				$curl = $this->init_curl_json($requestJSON);				
+				$curl = $this->init_curl_json($requestJSON,'pay');
 				$curlResponse = json_decode(curl_exec($curl));
 				$httpStatus = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
 				curl_close($curl);
 				if($_POST['payu_latam-payment-select'] == 'PSE'){
-					return array(
+					$requestJSON = 	$this->request_assembler('ORDER_DETAIL_BY_REFERENCE_CODE',$parameters);
+					$curlAuxiliar = $this->init_curl_json($requestJSON,'report');
+					$curlResponseAuxiliar = json_decode(curl_exec($curlAuxiliar));
+					$httpStatus = curl_getinfo($curlAuxiliar, CURLINFO_EFFECTIVE_URL);
+					curl_close($curlAuxiliar);
+					if($curlResponseAuxiliar == 'PENDING'){
+						wc_add_notice('Ya tienes una orden pendiente con PSE con esta referencia: '.$parameters['REFERENCE_CODE'],$notice_type = 'error');
+						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
+						return;
+					}
+					if($curlResponse->transactionResponse->state == 'ERROR'){
+						wc_add_notice('Hubo un error con la transaccion: '.$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Mensaje: '.$curlResponse->transactionResponse->responseMessage,$notice_type = 'error');
+						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
+						return;
+					}
+					if($curlResponse->transactionResponse->state == 'DECLINED'){
+						wc_add_notice('Tu transaccion fue rechazada: '.$curlResponse->transactionResponse->responseCode,$notice_type = 'error');
+						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
+						return;
+					}
+					if($curlResponse->transactionResponse->state == 'PENDING'){
+						return array(
 						'result' => 'success',
 						'redirect' => $curlResponse->transactionResponse->extraParameters->BANK_URL
-						);
+						);	
+					}
 				}
-				if($_POST['payu_latam-payment-select'] == 'BALOTO' || $_POST['payu_latam-payment-select'] == 'EFECTY'){
-					return array(
+				if($_POST['payu_latam-payment-select'] == 'BALOTO'){
+					if($curlResponse->transactionResponse->state == 'ERROR'){
+						wc_add_notice('Hubo un error con la transaccion: '.$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Mensaje: '.$curlResponse->transactionResponse->responseMessage,$notice_type = 'error');
+						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
+						return;
+					}
+					if($curlResponse->transactionResponse->state == 'DECLINED'){
+						wc_add_notice('Tu transaccion fue rechazada: '.$curlResponse->transactionResponse->responseCode,$notice_type = 'error');
+						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
+						return;
+					}
+					if($curlResponse->transactionResponse->state == 'PENDING'){
+						
+						return array(
 						'result' => 'success',
-						'redirect' => $curlResponse->transactionResponse->extraParameters->URL_PAYMENT_RECEIPT_HTML
-						);
+						'redirect' => $curlResponse->transactionResponse->extraParameters->BANK_URL
+						);	
+					}
 				}				
 				if($curlResponse->transactionResponse->state == 'APPROVED'){
 					// Remove cart
