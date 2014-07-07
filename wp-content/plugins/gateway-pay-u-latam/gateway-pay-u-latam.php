@@ -359,41 +359,39 @@ function init_gateway_payu_class(){
 					$httpStatus = curl_getinfo($curlAuxiliar, CURLINFO_EFFECTIVE_URL);
 					curl_close($curlAuxiliar);
 					if($curlResponseAuxiliar == 'PENDING'){
-						wc_add_notice('Ya tienes una orden pendiente con PSE con esta referencia: '.$parameters['REFERENCE_CODE'],$notice_type = 'error');
+						wc_add_notice(__('You already have a pending PSE order with that reference: ','woocommerce').$parameters['REFERENCE_CODE'],$notice_type = 'error');
 						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
 						return;
 					}
 					if($curlResponse->transactionResponse->state == 'ERROR'){
-						wc_add_notice('Hubo un error con la transaccion: '.$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Codigo de error : '.$curlResponse->transactionResponse->errorCode,$notice_type = 'error');
+						wc_add_notice(__( 'There was an error with the transaction: ', 'woocommerce' ).$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Codigo de error : '.$curlResponse->transactionResponse->errorCode,$notice_type = 'error');
 						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
 						return;
 					}
 					if($curlResponse->transactionResponse->state == 'DECLINED'){
-						wc_add_notice('Tu transaccion fue rechazada: '.$curlResponse->transactionResponse->responseCode,$notice_type = 'error');
+						wc_add_notice(__( 'Your transaction was Declined', 'woocommerce' ).$curlResponse->transactionResponse->responseCode,$notice_type = 'error');
 						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
 						return;
 					}
 					if($curlResponse->transactionResponse->state == 'PENDING'){
-						$woocommerce->cart->empty_cart();
-						$order->payment_complete();
+						$order->update_status('on-hold', __( 'Waiting for BALOTO confirmation', 'woocommerce' ));
 						wp_redirect($curlResponse->transactionResponse->extraParameters->BANK_URL);
 						exit;
 					}
 				}
 				if($_POST['payu_latam-payment-select'] == 'BALOTO'){
 					if($curlResponse->transactionResponse->state == 'ERROR'){
-						wc_add_notice('Hubo un error con la transaccion: '.$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Codigo de error : '.$curlResponse->transactionResponse->errorCode,$notice_type = 'error');
+						wc_add_notice(__( 'There was an error with the transaction: ', 'woocommerce' ).$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Codigo de error : '.$curlResponse->transactionResponse->errorCode,$notice_type = 'error');
 						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
 						return;
 					}
 					if($curlResponse->transactionResponse->state == 'DECLINED'){
-						wc_add_notice('Tu transaccion fue rechazada: '.$curlResponse->transactionResponse->responseCode,$notice_type = 'error');
+						wc_add_notice(__( 'Your transaction was Declined', 'woocommerce' ).$curlResponse->transactionResponse->responseCode,$notice_type = 'error');
 						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
 						return;
 					}
 					if($curlResponse->transactionResponse->state == 'PENDING'){
-						$woocommerce->cart->empty_cart();
-						$order->payment_complete();	
+						$order->update_status('on-hold', __( 'Waiting for BALOTO confirmation', 'woocommerce' ));
 						wp_redirect($curlResponse->transactionResponse->extraParameters->URL_PAYMENT_RECEIPT_HTML);
 						exit;
 					}
@@ -408,12 +406,12 @@ function init_gateway_payu_class(){
 						'redirect' => $this->get_return_url($order)
 						);
 				}else{
-					wc_add_notice('Hubo un error con la transaccion: '.$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Codigo de error : '.$curlResponse->transactionResponse->errorCode,$notice_type = 'error');
+					wc_add_notice(__( 'There was an error with the transaction: ', 'woocommerce' ).$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Codigo de error : '.$curlResponse->transactionResponse->errorCode,$notice_type = 'error');
 					$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
 					return;
 				}
 			}else{
-				wc_add_notice('Hubo un error de conexion con PayU Latam',$notice_type = 'error');
+				wc_add_notice(__( 'There was an error connecting to PayU', 'woocommerce' ),$notice_type = 'error');
 				return;
 			}
 		}
