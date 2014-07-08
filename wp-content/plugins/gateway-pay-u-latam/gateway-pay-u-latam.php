@@ -119,9 +119,9 @@ function init_gateway_payu_class(){
          	}
          	echo '<label for="payu_latam-payment-select">' . __( 'Payment Method Select', 'woocommerce' ) . ' <span class="required">*</span></label>
          	<select id="payu_latam-payment-select" name="payu_latam-payment-select" onchange="displayPayuForm()">
-				<option value="Credit Card">Credit Card</option>
-				<option value="PSE">PSE Bank Transfer</option>
-				<option value="BALOTO">Baloto</option>
+				<option value="Credit Card">'. __( 'Credit Card', 'woocommerce' ) .'</option>
+				<option value="PSE">'. __( 'PSE Bank Transfer', 'woocommerce' ) .'</option>
+				<option value="BALOTO">'. __( 'Baloto', 'woocommerce' ) .'</option>
 			</select>';
          	$this->credit_card_form(array('fields_have_names' => true), array('card-select-field' => '<p class="form-row form-row-first">
 			<label for="payu_latam-card-select">' . __( 'Credit Card Type', 'woocommerce' ) . ' <span class="required">*</span></label>
@@ -289,6 +289,8 @@ function init_gateway_payu_class(){
 					$extraParameters->USER_TYPE = $_POST['payu_latam-person-type'];
 					$extraParameters->PSE_REFERENCE2 = $_POST['payu_latam-docid-type'];
 					$extraParameters->PSE_REFERENCE3 = $_POST['payu_latam-id-number'];
+					$page = get_page_by_title('PSE Response');
+					$extraParameters->RESPONSE_URL = get_permalink($page->ID);
 					$transaction->extraParameters = $extraParameters;	
 				}							
 				$request->transaction = $transaction;
