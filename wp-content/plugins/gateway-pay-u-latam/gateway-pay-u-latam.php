@@ -226,9 +226,18 @@ function init_gateway_payu_class(){
 			$request->language = 'es';
 			$request->command = $command;
 			$merchant = new stdClass();
-			$merchant->apiLogin = '11959c415b33d0c';
-			$merchant->apiKey= '6u39nqhq8ftd0hlvnjfs66eh8c';
-			$request->merchant = $merchant;			
+			$merchant->apiLogin = $this->apiLogin;
+			$merchant->apiKey= $this->apiKey;
+			$request->merchant = $merchant;
+			if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
+			//check ip from share internet
+				$ip = $_SERVER['HTTP_CLIENT_IP'];
+			} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+			//to check ip is pass from proxy
+				$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+			} else {
+				$ip = $_SERVER['REMOTE_ADDR'];
+			}			
 			if($command == 'SUBMIT_TRANSACTION'){
 				$transaction = new stdClass();
 				$order = new stdClass();
@@ -282,20 +291,24 @@ function init_gateway_payu_class(){
 					$extraParameters->INSTALLMENTS_NUMBER = $parameters['INSTALLMENTS_NUMBER'];
 					$transaction->extraParameters = $extraParameters;				
 				}
+				$page = get_page_by_title('PayU Response');
+				$extraParameters->RESPONSE_URL = get_permalink($page->ID);
 				if ($parameters['PAYMENT_METHOD'] == 'PSE') {
 					$banksList = $this->get_pse_banklist();
 					$extraParameters->FINANCIAL_INSTITUTION_CODE = $banksList[$_POST['payu_latam-pse-bank']];
 					$extraParameters->FINANCIAL_INSTITUTION_NAME = $_POST['payu_latam-pse-bank'];
 					$extraParameters->USER_TYPE = $_POST['payu_latam-person-type'];
+					$extraParameters->PSE_REFERENCE1 = $ip;
 					$extraParameters->PSE_REFERENCE2 = $_POST['payu_latam-docid-type'];
-					$extraParameters->PSE_REFERENCE3 = $_POST['payu_latam-id-number'];
-					$page = get_page_by_title('PSE Response');
-					$extraParameters->RESPONSE_URL = get_permalink($page->ID);
-					$transaction->extraParameters = $extraParameters;	
+					$extraParameters->PSE_REFERENCE3 = $_POST['payu_latam-id-number'];					
+					$transaction->extraParameters = $extraParameters;
+					$transaction->ipAddress = $ip;
+					$transaction->cookie = 'cookie_1234567890';
+					$transaction->userAgent = 'Mozilla/4.0 (compatible; MSIE 5.15; Mac_PowerPC)';
 				}							
 				$request->transaction = $transaction;
 			}
-			if($this->isTest =='yes'){
+			if($this->isTest =='yes' && $parameters['PAYMENT_METHOD']!='BALOTO' && $parameters['PAYMENT_METHOD']!='EFECTY' && $parameters['PAYMENT_METHOD']!='PSE'){
 				$request->test = true;
 			}else{
 				$request->test = false;
@@ -349,29 +362,18 @@ function init_gateway_payu_class(){
 				$order->update_status('on-hold', __( 'Awaiting PayU Latam payment', 'woocommerce' ));
 				$parameters = $this->payulatam_order_args($order);	
 				$requestJSON = 	$this->request_assembler('SUBMIT_TRANSACTION',$parameters);
-				$bankListArray = $this->get_pse_banklist();
 				$curl = $this->init_curl_json($requestJSON,'pay');
 				$curlResponse = json_decode(curl_exec($curl));
 				$httpStatus = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
 				curl_close($curl);
 				if($_POST['payu_latam-payment-select'] == 'PSE'){
-					$requestJSON = 	$this->request_assembler('ORDER_DETAIL_BY_REFERENCE_CODE',$parameters);
-					$curlAuxiliar = $this->init_curl_json($requestJSON,'report');
-					$curlResponseAuxiliar = json_decode(curl_exec($curlAuxiliar));
-					$httpStatus = curl_getinfo($curlAuxiliar, CURLINFO_EFFECTIVE_URL);
-					curl_close($curlAuxiliar);
-					if($curlResponseAuxiliar == 'PENDING'){
-						wc_add_notice(__('You already have a pending PSE order with that reference: ','woocommerce').$parameters['REFERENCE_CODE'],$notice_type = 'error');
-						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
-						return;
-					}
 					if($curlResponse->transactionResponse->state == 'ERROR'){
 						wc_add_notice(__( 'There was an error with the transaction: ', 'woocommerce' ).$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Codigo de error : '.$curlResponse->transactionResponse->errorCode,$notice_type = 'error');
 						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
 						return;
 					}
 					if($curlResponse->transactionResponse->state == 'DECLINED'){
-						wc_add_notice(__( 'Your transaction was Declined', 'woocommerce' ).$curlResponse->transactionResponse->responseCode,$notice_type = 'error');
+						wc_add_notice(__( 'Your transaction was Declined ', 'woocommerce' ).$curlResponse->transactionResponse->responseCode,$notice_type = 'error');
 						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
 						return;
 					}
@@ -388,7 +390,7 @@ function init_gateway_payu_class(){
 						return;
 					}
 					if($curlResponse->transactionResponse->state == 'DECLINED'){
-						wc_add_notice(__( 'Your transaction was Declined', 'woocommerce' ).$curlResponse->transactionResponse->responseCode,$notice_type = 'error');
+						wc_add_notice(__( 'Your transaction was Declined ', 'woocommerce' ).$curlResponse->transactionResponse->responseCode,$notice_type = 'error');
 						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
 						return;
 					}

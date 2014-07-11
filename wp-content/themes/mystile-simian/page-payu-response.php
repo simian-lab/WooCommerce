@@ -4,19 +4,16 @@ get_header();
 <div id="content">
 	<?php woo_main_before(); ?>
 	<section id="main">
-<p><?php _e( 'Your PSE order data is displayed now.', 'woocommerce' ); ?></p>
-		<ul class="pse-order-details">
+<p><?php _e( 'Your PayU order data is displayed now.', 'woocommerce' ); ?></p>
+		<ul class="payu-order-details">
 			<li class="company">
 				<?php _e( 'Company:', 'woothemes' ); ?>
 				<strong>Simian</strong>
 			</li>
+
 			<li class="nit">
 				<?php _e( 'Nit:', 'woothemes' ); ?>
 				<strong>NIT Number</strong>
-			</li>
-			<li class="date">
-				<?php _e( 'Transaction Date:', 'woothemes' ); ?>
-				<strong><?php echo $_GET['processingDate']; ?></strong>
 			</li>
 			<li class="state">
 				<?php _e( 'State:', 'woothemes' ); ?>
@@ -54,8 +51,10 @@ get_header();
 				<?php _e( 'Origin IP:', 'woothemes' ); ?>
 				<strong><?php echo $_GET['pseReference1']; ?></strong>
 			</li>
-			<button type="button"><?php _e( 'Retry transaction', 'woothemes' ); ?></button>
-			<button type="button"><?php _e( 'End transaction', 'woothemes' ); ?></button>
+			<a href ="<?php 
+			$page = get_page_by_title('Checkout');
+			echo = get_permalink($page->ID); ?>"><?php _e( 'Retry transaction', 'woothemes' ); ?></button>
+			<a href="<?php echo home_url(); ?>"><?php _e( 'End transaction', 'woothemes' ); ?></a>
 			<button type="button"><?php _e( 'Print Voucher', 'woothemes' ); ?></button>
 		</section>
 		</ul>
