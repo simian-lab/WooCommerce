@@ -122,6 +122,7 @@ function init_gateway_payu_class(){
 				<option value="Credit Card">'. __( 'Credit Card', 'woocommerce' ) .'</option>
 				<option value="PSE">'. __( 'PSE Bank Transfer', 'woocommerce' ) .'</option>
 				<option value="BALOTO">'. __( 'Baloto', 'woocommerce' ) .'</option>
+				<option value="EFECTY">'. __( 'Efecty', 'woocommerce' ) .'</option>
 			</select>';
          	$this->credit_card_form(array('fields_have_names' => true), array('card-select-field' => '<p class="form-row form-row-first">
 			<label for="payu_latam-card-select">' . __( 'Credit Card Type', 'woocommerce' ) . ' <span class="required">*</span></label>
