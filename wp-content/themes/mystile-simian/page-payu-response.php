@@ -51,7 +51,7 @@ get_header();
 			$page = get_page_by_title('Checkout');
 			echo get_permalink($page->ID); ?>"><?php _e( 'Retry transaction', 'woothemes' ); ?></button>
 			<a href="<?php echo home_url(); ?>"><?php _e( 'End transaction', 'woothemes' ); ?></a>
-			<button type="button"><?php _e( 'Print Voucher', 'woothemes' ); ?></button>
+			<button type="button" onclick="window.print();"><?php _e( 'Print Voucher', 'woothemes' ); ?></button>
 		</section>
 		</ul>
 		<?php woo_main_after(); ?>
