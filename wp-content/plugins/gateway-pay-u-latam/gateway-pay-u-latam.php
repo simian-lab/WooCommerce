@@ -386,7 +386,7 @@ function init_gateway_payu_class(){
 							);
 					}
 				}
-				if($_POST['payu_latam-payment-select'] == 'BALOTO'){
+				if($_POST['payu_latam-payment-select'] == 'BALOTO' || $_POST['payu_latam-payment-select'] == 'EFECTY'){
 					if($curlResponse->transactionResponse->state == 'ERROR'){
 						wc_add_notice(__( 'There was an error with the transaction: ', 'woocommerce' ).$curlResponse->error. ' Code: '.$curlResponse->code. ' Transaction State: '.$curlResponse->transactionResponse->state.' Codigo de error : '.$curlResponse->transactionResponse->errorCode,$notice_type = 'error');
 						$order->update_status('pending', __( 'Error with PayU Payment', 'woocommerce' ));
