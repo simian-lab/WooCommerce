@@ -30,7 +30,7 @@ get_header();
 			<li class="cus">
 				<?php _e( 'CUS:', 'woothemes' ); ?>
 				<strong><?php echo $_GET['cus']; ?></strong>
-			</li>>
+			</li>
 			<li class="value">
 				<?php _e( 'Value:', 'woothemes' ); ?>
 				<strong><?php echo $_GET['TX_VALUE']; ?></strong>

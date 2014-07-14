@@ -380,8 +380,10 @@ function init_gateway_payu_class(){
 					}
 					if($curlResponse->transactionResponse->state == 'PENDING'){
 						$order->update_status('on-hold', __( 'Waiting for BALOTO confirmation', 'woocommerce' ));
-						wp_redirect($curlResponse->transactionResponse->extraParameters->BANK_URL);
-						exit;
+						return array(
+							'result' 	=> 'success',
+							'redirect'	=> $curlResponse->transactionResponse->extraParameters->BANK_URL
+							);
 					}
 				}
 				if($_POST['payu_latam-payment-select'] == 'BALOTO'){
@@ -397,8 +399,10 @@ function init_gateway_payu_class(){
 					}
 					if($curlResponse->transactionResponse->state == 'PENDING'){
 						$order->update_status('on-hold', __( 'Waiting for BALOTO confirmation', 'woocommerce' ));
-						wp_redirect($curlResponse->transactionResponse->extraParameters->URL_PAYMENT_RECEIPT_HTML);
-						exit;
+						return array(
+							'result' 	=> 'success',
+							'redirect'	=> $curlResponse->transactionResponse->extraParameters->URL_PAYMENT_RECEIPT_HTML
+							);						
 					}
 				}				
 				if($curlResponse->transactionResponse->state == 'APPROVED'){
