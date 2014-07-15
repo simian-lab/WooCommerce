@@ -437,10 +437,6 @@ function override_credit_card_field( $fields ){
     </p>';
 	return $fields; 
 }
-function remove_zipcode_field( $fields){
-	unset($fields['billing']['billing_postcode']);
-	return $fields;
-}
 function payu_enqueue_scripts(){
 	if ( function_exists( 'is_woocommerce' ) ) {
 		wp_enqueue_style('payu-forms',plugins_url('/gateway-pay-u-latam/assets/css/payu-forms.css'),__FILE__);
@@ -450,6 +446,5 @@ function payu_enqueue_scripts(){
 add_action('plugins_loaded','init_gateway_payu_class');
 add_filter( 'woocommerce_payment_gateways', 'add_payu_gateway_class' );
 add_filter('woocommerce_credit_card_form_fields','override_credit_card_field');
-add_filter('woocommerce_checkout_fields','remove_zipcode_field');
 add_action( 'wp_enqueue_scripts', 'payu_enqueue_scripts', 99 );
 ?>
