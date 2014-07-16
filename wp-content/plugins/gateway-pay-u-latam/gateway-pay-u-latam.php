@@ -249,6 +249,8 @@ function init_gateway_payu_class(){
 				$order->description = $parameters['DESCRIPTION'];
 				$order->language = $this->language;
 				$order->signature = $parameters['SIGNATURE'];
+				$page = get_page_by_title('PayU Response');
+				$order->notifyUrl = get_permalink($page->ID);
 				$shippingAddress = new stdClass();
 				$shippingAddress->country = $this->country;
 				$order->shippingAddress = $shippingAddress;
@@ -291,8 +293,7 @@ function init_gateway_payu_class(){
 				if ($parameters['PAYMENT_METHOD'] != 'PSE' && $parameters['PAYMENT_METHOD'] != 'BALOTO' && $parameters['PAYMENT_METHOD'] != 'EFECTY') {
 					$extraParameters->INSTALLMENTS_NUMBER = $parameters['INSTALLMENTS_NUMBER'];
 					$transaction->extraParameters = $extraParameters;				
-				}
-				$page = get_page_by_title('PayU Response');
+				}				
 				$extraParameters->RESPONSE_URL = get_permalink($page->ID);
 				if ($parameters['PAYMENT_METHOD'] == 'PSE') {
 					$banksList = $this->get_pse_banklist();
@@ -379,7 +380,7 @@ function init_gateway_payu_class(){
 						return;
 					}
 					if($curlResponse->transactionResponse->state == 'PENDING'){
-						$order->update_status('on-hold', __( 'Waiting for BALOTO confirmation', 'woocommerce' ));
+						$order->update_status('on-hold', __( 'Waiting for PSE confirmation', 'woocommerce' ));
 						return array(
 							'result' 	=> 'success',
 							'redirect'	=> $curlResponse->transactionResponse->extraParameters->BANK_URL
