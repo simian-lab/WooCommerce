@@ -14,7 +14,10 @@
 			<li><?php echo __('Payment Number: ','woocommerce').$_GET['paymentNumber']; ?></li> 
 			<li><?php echo __('Value: $','woocommerce').$_GET['TX_VALUE'].' COP'; ?></li>
 			<li><?php echo __('Agreement code : ','woocommerce').'123'; ?></li> 
-			<li><?php echo __('Order Date: ','woocommerce').$_GET['expirationDate']; ?></li> 
+			<li><?php 
+			date_default_timezone_set('America/Bogota');
+			$date = date('m/d/Y h:i:s a', time());
+			echo __('Order Date: ','woocommerce').$date; ?></li> 
 			<li><?php echo __('Expiration Date: ','woocommerce').$_GET['expirationDate']; ?></li> 
 		</ul>
 		<span><?php echo __('Keep in mind!','woocommerce'); ?></span>
