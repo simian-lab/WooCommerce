@@ -1,6 +1,4 @@
-<?php
-get_header();
-?>
+<?php get_header();?>
 <div id="content">
 	<?php woo_main_before(); ?>
 	<section id="main">
@@ -51,7 +49,7 @@ get_header();
 			$page = get_page_by_title('Checkout');
 			echo get_permalink($page->ID); ?>"><?php _e( 'Retry transaction', 'woothemes' ); ?></button>
 			<a href="<?php echo home_url(); ?>"><?php _e( 'End transaction', 'woothemes' ); ?></a>
-			<button type="button" onclick="window.print();"><?php _e( 'Print Voucher', 'woothemes' ); ?></button>
+			<?php if(function_exists('pf_show_link')){echo pf_show_link();} ?>
 		</section>
 		</ul>
 		<?php woo_main_after(); ?>

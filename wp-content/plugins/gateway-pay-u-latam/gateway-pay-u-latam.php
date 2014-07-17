@@ -249,8 +249,7 @@ function init_gateway_payu_class(){
 				$order->description = $parameters['DESCRIPTION'];
 				$order->language = $this->language;
 				$order->signature = $parameters['SIGNATURE'];
-				$page = get_page_by_title('PayU Response');
-				$order->notifyUrl = get_permalink($page->ID);
+				
 				$shippingAddress = new stdClass();
 				$shippingAddress->country = $this->country;
 				$order->shippingAddress = $shippingAddress;
@@ -293,10 +292,11 @@ function init_gateway_payu_class(){
 				if ($parameters['PAYMENT_METHOD'] != 'PSE' && $parameters['PAYMENT_METHOD'] != 'BALOTO' && $parameters['PAYMENT_METHOD'] != 'EFECTY') {
 					$extraParameters->INSTALLMENTS_NUMBER = $parameters['INSTALLMENTS_NUMBER'];
 					$transaction->extraParameters = $extraParameters;				
-				}				
-				$extraParameters->RESPONSE_URL = get_permalink($page->ID);
+				}								
 				if ($parameters['PAYMENT_METHOD'] == 'PSE') {
 					$banksList = $this->get_pse_banklist();
+					$page = get_page_by_title('PayU Response');
+					$extraParameters->RESPONSE_URL = get_permalink($page->ID);
 					$extraParameters->FINANCIAL_INSTITUTION_CODE = $banksList[$_POST['payu_latam-pse-bank']];
 					$extraParameters->FINANCIAL_INSTITUTION_NAME = $_POST['payu_latam-pse-bank'];
 					$extraParameters->USER_TYPE = $_POST['payu_latam-person-type'];
@@ -399,10 +399,11 @@ function init_gateway_payu_class(){
 						return;
 					}
 					if($curlResponse->transactionResponse->state == 'PENDING'){
-						$order->update_status('on-hold', __( 'Waiting for BALOTO confirmation', 'woocommerce' ));
+						$order->update_status('on-hold', __( 'Waiting for BALOTO/EFECTY confirmation', 'woocommerce' ));
+						$page = get_page_by_title('Transaction Response');
 						return array(
 							'result' 	=> 'success',
-							'redirect'	=> $curlResponse->transactionResponse->extraParameters->URL_PAYMENT_RECEIPT_HTML
+							'redirect'	=> get_permalink($page->ID).'?paymentMethod='.$_POST['payu_latam-payment-select'].'&TX_VALUE='.$parameters['VALUE'].'&paymentNumber='.$curlResponse->transactionResponse->orderId.'&expirationDate='.$curlResponse->transactionResponse->extraParameters->EXPIRATION_DATE
 							);						
 					}
 				}				
