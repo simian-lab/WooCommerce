@@ -49,7 +49,7 @@
 			$page = get_page_by_title('Checkout');
 			echo get_permalink($page->ID); ?>"><?php _e( 'Retry transaction', 'woothemes' ); ?></button>
 			<a href="<?php echo home_url(); ?>"><?php _e( 'End transaction', 'woothemes' ); ?></a>
-			<?php if(function_exists('pf_show_link')){echo pf_show_link();} ?>
+			<button type="buttom" onclick="window.print();">Print Receipt</button>
 		</section>
 		</ul>
 		<?php woo_main_after(); ?>

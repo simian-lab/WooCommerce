@@ -24,10 +24,10 @@
 		<ol>
 			<li><?php echo __('This receipt is only valid for the current payment and will reflect on the commerce account 24 hourse after the payment.','woocommerce'); ?></li> 
 			<li><?php echo __('If you have any doubts about your purchase, contact us, its our responsability to clarify ani claim about your purchase.','woocommerce'); ?></li>
-			<li><?php echo __('Once your payment has beed recieved in '.$_GET['paymentMethod'].', PayU will inform usUna vez recibido tu pago en BALOTO, PayU informará al comercio, el cual procederá a hacer entrega del producto/servicio que estás adquiriendo.','woocommerce'); ?></li>
+			<li><?php echo __('Once your payment has beed recieved in '.$_GET['paymentMethod'].', PayU will inform us, and we will proceed to deliver the product.','woocommerce'); ?></li>
 		</ol>
 		<span><?php echo __('If you have additional doubts about payment, contact us or email PayU to ','woocommerce'); ?><a href="mailto:sac@payulatam.com">sac@payulatam.com</a></span>
-		<?php if(function_exists('pf_show_link')){echo pf_show_link();} ?>
+		<button type="buttom" onclick="window.print();">Print Receipt</button>
 	</section>
 	<?php woo_main_after(); ?>
 	<?php get_sidebar(); ?>

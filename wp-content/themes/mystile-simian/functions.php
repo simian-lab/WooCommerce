@@ -11,5 +11,8 @@ function customize_checkout_fields( $fields){
 	return $fields;
 }
 add_filter('woocommerce_checkout_fields','customize_checkout_fields');
-
+function enqueue_print_style(){
+	wp_enqueue_style('print', get_stylesheet_directory_uri() . '/css/print.css' );
+}
+add_action('wp_enqueue_scripts', 'enqueue_print_style');
 ?>
