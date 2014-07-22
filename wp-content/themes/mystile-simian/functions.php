@@ -40,4 +40,10 @@ function CO_woocommerce_states( $states ) {
   return $states;
 }
 add_filter( 'woocommerce_states', 'CO_woocommerce_states' );
+function remove_calculate_zipcode( $value){
+	$value = false;
+	return 	$value;
+}
+add_filter('woocommerce_shipping_calculator_enable_postcode', 'remove_calculate_zipcode');
+
 ?>
