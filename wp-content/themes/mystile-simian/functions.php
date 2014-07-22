@@ -18,18 +18,22 @@ add_action('wp_enqueue_scripts', 'enqueue_print_style');
 function CO_woocommerce_states( $states ) {
  
   $states['CO'] = array(
-				'CU' => __('Cundinamarca', 'woocommerce') ,
-				'AN' => __('Antioquia', 'woocommerce') ,
-				'ST' => __('Santander', 'woocommerce') ,
-				'VC' => __('Valle Del Cauca', 'woocommerce') ,
-				'AT' => __('Atlántico', 'woocommerce') ,
-				'BO' => __('Bolívar', 'woocommerce') ,
-				'NS' => __('Norte de Santander', 'woocommerce') ,
-				'TO' => __('Tolima', 'woocommerce') ,
-				'MG' => __('Magdalena', 'woocommerce'),
-				'ME' => __('Meta', 'woocommerce'),
-				'RS' => __('Risaralda', 'woocommerce'),
-				'CA' => __('Caldas', 'woocommerce'),
+				'BOG' => __('Bogotá D.C.', 'woocommerce') ,
+				'CUN' => __('Bosa, Soacha, Cajica, Chia, Madrid, Usme', 'woocommerce') ,
+				'MED' => __('Medellín', 'woocommerce') ,
+				'ANT' => __('Rionegro y Guame', 'woocommerce') ,
+				'BUC' => __('Bucaramanga', 'woocommerce') ,
+				'STN' => __('Girón y Floridablanca', 'woocommerce') ,
+				'CAL' => __('Cali', 'woocommerce') ,
+				'BAR' => __('Barranquilla', 'woocommerce') ,
+				'ATL' => __('Malambo', 'woocommerce'),
+				'CAR' => __('Cartagena', 'woocommerce'),
+				'CUC' => __('Cúcuta', 'woocommerce'),
+				'IBG' => __('Ibagué', 'woocommerce'),
+				'STM' => __('Santa Marta', 'woocommerce'),
+				'VIL' => __('Villavicencio', 'woocommerce'),
+				'PER' => __('Pereira', 'woocommerce'),
+				'MAN' => __('Manizales', 'woocommerce'),
 				'OC' => __('Other Cities', 'woocommerce')
   );
  
