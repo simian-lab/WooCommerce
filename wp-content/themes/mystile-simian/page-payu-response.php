@@ -45,15 +45,17 @@
 				<?php _e( 'Origin IP:', 'woothemes' ); ?>
 				<strong><?php echo $_GET['pseReference1']; ?></strong>
 			</li>
-			<a href ="<?php 
+		</ul>
+		</section>
+		<?php woo_main_after(); ?>
+	    <?php get_sidebar(); ?>
+</div>
+<div id="no-print-pdf">
+				<a href ="<?php 
 			$page = get_page_by_title('Checkout');
 			echo get_permalink($page->ID); ?>"><?php _e( 'Retry transaction', 'woothemes' ); ?></button>
 			<a href="<?php echo home_url(); ?>"><?php _e( 'End transaction', 'woothemes' ); ?></a>
 			<button type="buttom" onclick="window.print();">Print Receipt</button>
-		</section>
-		</ul>
-		<?php woo_main_after(); ?>
-	    <?php get_sidebar(); ?>
-</div>
-
+			<button type="buttom" onclick="printPdfHtml();">Pdf</button>
+			</div>			
     <?php get_footer(); ?>

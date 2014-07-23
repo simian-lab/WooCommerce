@@ -12,7 +12,13 @@ function customize_checkout_fields( $fields){
 }
 add_filter('woocommerce_checkout_fields','customize_checkout_fields');
 function enqueue_print_style(){
-	wp_enqueue_style('print', get_stylesheet_directory_uri() . '/css/print.css' );	
+	if(	is_page( 'payu-response' ) ||  is_page( 'transaction-response' ) ){
+		wp_deregister_script( 'jquery' );
+		wp_enqueue_script('jquery', get_stylesheet_directory_uri() . '/js/jquery-1.11.1.min.js' );
+		wp_enqueue_script('jspdf', get_stylesheet_directory_uri() . '/jspdf/jspdf.source.js' );
+		wp_enqueue_script('from-html', get_stylesheet_directory_uri() . '/js/from-html.js' );	
+		wp_enqueue_style('print', get_stylesheet_directory_uri() . '/css/print.css' );		
+	}	
 }
 add_action('wp_enqueue_scripts', 'enqueue_print_style'); 
 function CO_woocommerce_states( $states ) {
@@ -45,5 +51,9 @@ function remove_calculate_zipcode( $value){
 	return 	$value;
 }
 add_filter('woocommerce_shipping_calculator_enable_postcode', 'remove_calculate_zipcode');
-
+function remove_shipping_label($full_label){
+    $full_label = '';
+    return $full_label;
+}
+add_filter( 'woocommerce_cart_shipping_method_full_label', 'remove_shipping_label');
 ?>

@@ -27,9 +27,13 @@
 			<li><?php echo __('Once your payment has beed recieved in '.$_GET['paymentMethod'].', PayU will inform us, and we will proceed to deliver the product.','woocommerce'); ?></li>
 		</ol>
 		<span><?php echo __('If you have additional doubts about payment, contact us or email PayU to ','woocommerce'); ?><a href="mailto:sac@payulatam.com">sac@payulatam.com</a></span>
-		<button type="buttom" onclick="window.print();">Print Receipt</button>
+		
 	</section>
 	<?php woo_main_after(); ?>
 	<?php get_sidebar(); ?>
 </div>
+<div id="no-print-pdf">
+	<button type="buttom" onclick="window.print();">Print Receipt</button>
+	<button type="buttom" onclick="printPdfHtml();">Pdf</button>
+</div>	
 <?php get_footer(); ?>
