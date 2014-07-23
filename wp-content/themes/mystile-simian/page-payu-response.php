@@ -51,11 +51,11 @@
 	    <?php get_sidebar(); ?>
 </div>
 <div id="no-print-pdf">
-				<a href ="<?php 
+	<a href ="<?php 
 			$page = get_page_by_title('Checkout');
 			echo get_permalink($page->ID); ?>"><?php _e( 'Retry transaction', 'woothemes' ); ?></button>
-			<a href="<?php echo home_url(); ?>"><?php _e( 'End transaction', 'woothemes' ); ?></a>
-			<button type="buttom" onclick="window.print();">Print Receipt</button>
-			<button type="buttom" onclick="printPdfHtml();">Pdf</button>
-			</div>			
+	<a href="<?php echo home_url(); ?>"><?php _e( 'End transaction', 'woothemes' ); ?></a>
+	<button type="buttom" onclick="window.print();">Print Receipt</button>
+	<button type="buttom" onclick="printPdfHtml();">Pdf</button>
+</div>			
     <?php get_footer(); ?>

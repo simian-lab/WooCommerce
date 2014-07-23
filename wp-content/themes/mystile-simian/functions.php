@@ -51,9 +51,5 @@ function remove_calculate_zipcode( $value){
 	return 	$value;
 }
 add_filter('woocommerce_shipping_calculator_enable_postcode', 'remove_calculate_zipcode');
-function remove_shipping_label($full_label){
-    $full_label = '';
-    return $full_label;
-}
-add_filter( 'woocommerce_cart_shipping_method_full_label', 'remove_shipping_label');
+
 ?>
